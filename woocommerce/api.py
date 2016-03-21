@@ -5,7 +5,7 @@ WooCommerce API Class
 """
 
 __title__ = "woocommerce-api"
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 __author__ = "Claudio Sanches @ WooThemes"
 __license__ = "MIT"
 
@@ -58,7 +58,7 @@ class API(object):
         auth = None
         params = None
         headers = {
-            "user-agent": "WooCommerce API Client-Node.js/%s" % __version__,
+            "user-agent": "WooCommerce API Client-Python/%s" % __version__,
             "content-type": "application/json;charset=utf-8",
             "accept": "application/json"
         }

@@ -5,7 +5,7 @@ WooCommerce OAuth1.0a Class
 """
 
 __title__ = "woocommerce-oauth"
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 __author__ = "Claudio Sanches @ WooThemes"
 __license__ = "MIT"
 
@@ -39,7 +39,7 @@ class OAuth(object):
 
     def get_oauth_url(self):
         """ Returns the URL with OAuth params """
-        params = {}
+        params = OrderedDict()
 
         if "?" in self.url:
             url = self.url[:self.url.find("?")]
@@ -50,11 +50,7 @@ class OAuth(object):
 
         params["oauth_consumer_key"] = self.consumer_key
         params["oauth_timestamp"] = int(time())
-        params["oauth_nonce"] = HMAC(
-            str(time() + randint(0, 99999)).encode(),
-            "secret".encode(),
-            sha1
-        ).hexdigest()
+        params["oauth_nonce"] = self.generate_nonce()
         params["oauth_signature_method"] = "HMAC-SHA256"
         params["oauth_signature"] = self.generate_oauth_signature(params, url)
 
@@ -68,8 +64,8 @@ class OAuth(object):
             del params["oauth_signature"]
 
         base_request_uri = quote(url, "")
+        params = self.sorted_params(params)
         params = self.normalize_parameters(params)
-        params = OrderedDict(sorted(params.items()))
         query_params = ["{param_key}%3D{param_value}".format(param_key=key, param_value=value)
                         for key, value in params.items()]
 
@@ -89,10 +85,22 @@ class OAuth(object):
         return b64encode(hash_signature).decode("utf-8").replace("\n", "")
 
     @staticmethod
+    def sorted_params(params):
+        ordered = OrderedDict()
+        base_keys = sorted(set(k.split('[')[0] for k in params.keys()))
+
+        for base in base_keys:
+            for key in params.keys():
+                if key == base or key.startswith(base + '['):
+                    ordered[key] = params[key]
+
+        return ordered
+
+    @staticmethod
     def normalize_parameters(params):
         """ Normalize parameters """
         params = params or {}
-        normalized_parameters = {}
+        normalized_parameters = OrderedDict()
 
         def get_value_like_as_php(val):
             """ Prepare value for quote """
@@ -119,3 +127,13 @@ class OAuth(object):
             normalized_parameters[key] = value
 
         return normalized_parameters
+
+    @staticmethod
+    def generate_nonce():
+        """ Generate nonce number """
+        nonce = ''.join([str(randint(0, 9)) for i in range(8)])
+        return HMAC(
+            nonce.encode(),
+            "secret".encode(),
+            sha1
+        ).hexdigest()
